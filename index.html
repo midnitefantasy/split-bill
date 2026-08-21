@@ -353,9 +353,12 @@
             <!-- OCR -->
             <div class="card">
                 <button class="btn btn-blue btn-full" onclick="document.getElementById('fileInput').click()">
-                    📷 Snap Receipt
+                    📷 Snap Receipt (optional)
                 </button>
                 <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleOCR(event)" />
+                <div style="font-size: 0.75rem; color: #4b5563; margin-top: 0.5rem; text-align: center;">
+                    💡 If OCR struggles, just type items manually below
+                </div>
             </div>
 
             <!-- Items -->
@@ -378,12 +381,12 @@
             <div class="card">
                 <h2>💰 Tax & Service</h2>
                 <div>
-                    <span class="label-small">Tax %</span>
-                    <input type="number" id="taxPercent" value="0" style="width: 100%; margin-bottom: 1rem;" />
+                    <span class="label-small">Service Charge (amount)</span>
+                    <input type="number" id="serviceAmount" value="0" style="width: 100%; margin-bottom: 1rem;" />
                 </div>
                 <div>
-                    <span class="label-small">Service %</span>
-                    <input type="number" id="servicePercent" value="0" style="width: 100%;" />
+                    <span class="label-small">Tax (amount)</span>
+                    <input type="number" id="taxAmount" value="0" style="width: 100%;" />
                 </div>
             </div>
 
@@ -427,8 +430,8 @@
             currencySymbol: 'Rp',
             people: [],
             items: [],
-            taxPercent: 0,
-            servicePercent: 0,
+            serviceAmount: 0,
+            taxAmount: 0,
             bearer: '',
             newItemAssigned: []
         };
@@ -565,31 +568,49 @@
                 return;
             }
 
-            const personTotals = {};
+            const personSubtotals = {};
             const personOrders = {};
+            const personService = {};
+            const personTax = {};
+            const personTotals = {};
 
             state.people.forEach(p => {
-                personTotals[p] = 0;
+                personSubtotals[p] = 0;
                 personOrders[p] = [];
+                personService[p] = 0;
+                personTax[p] = 0;
+                personTotals[p] = 0;
             });
 
+            // Calculate items subtotal per person
             state.items.forEach(item => {
                 if (item.assignedTo.length > 0) {
                     const perPerson = item.price / item.assignedTo.length;
                     item.assignedTo.forEach(person => {
-                        personTotals[person] += perPerson;
+                        personSubtotals[person] += perPerson;
                         personOrders[person].push(item.name);
                     });
                 }
             });
 
-            const subtotal = Object.values(personTotals).reduce((a, b) => a + b, 0);
-            const tax = (subtotal * state.taxPercent) / 100;
-            const service = (subtotal * state.servicePercent) / 100;
+            // Calculate total items for proportional split
+            const totalItems = Object.values(personSubtotals).reduce((a, b) => a + b, 0);
 
-            Object.keys(personTotals).forEach(person => {
-                const proportion = subtotal > 0 ? personTotals[person] / subtotal : 0;
-                personTotals[person] += tax * proportion + service * proportion;
+            // Add service proportionally based on items
+            Object.keys(personSubtotals).forEach(person => {
+                const proportion = totalItems > 0 ? personSubtotals[person] / totalItems : 0;
+                personService[person] = state.serviceAmount * proportion;
+            });
+
+            // Add tax proportionally based on items (after service)
+            Object.keys(personSubtotals).forEach(person => {
+                const proportion = totalItems > 0 ? personSubtotals[person] / totalItems : 0;
+                personTax[person] = state.taxAmount * proportion;
+            });
+
+            // Calculate final totals
+            Object.keys(personSubtotals).forEach(person => {
+                personTotals[person] = personSubtotals[person] + personService[person] + personTax[person];
             });
 
             const settlement = [];
@@ -599,15 +620,23 @@
                 }
             });
 
-            showResults(personTotals, personOrders, settlement);
+            showResults(personSubtotals, personService, personTax, personTotals, personOrders, settlement);
         }
 
-        function showResults(totals, orders, settlement) {
+        function showResults(subtotals, services, taxes, totals, orders, settlement) {
+            // Calculate total sum for verification
+            const totalSum = Object.values(totals).reduce((a, b) => a + b, 0);
+
             const peopleHtml = state.people.map(person => `
                 <div class="result-card">
                     <div class="result-person-name">${person.toUpperCase()}</div>
                     <div class="result-order">Order: ${orders[person].length > 0 ? orders[person].join(', ') : 'nothing'}</div>
-                    <div class="result-total">${formatCurrency(totals[person])}</div>
+                    <div style="font-size: 0.875rem; color: #4b5563; line-height: 1.6; margin-top: 0.5rem;">
+                        <div>Subtotal: ${formatCurrency(subtotals[person])}</div>
+                        <div>Service: ${formatCurrency(services[person])}</div>
+                        <div>Tax: ${formatCurrency(taxes[person])}</div>
+                    </div>
+                    <div class="result-total" style="margin-top: 0.75rem;">Total: ${formatCurrency(totals[person])}</div>
                 </div>
             `).join('');
 
@@ -619,8 +648,15 @@
                 </div>
             `).join('');
 
+            const verifyHtml = `
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(16, 185, 129, 0.3); text-align: center;">
+                    <div style="font-size: 0.875rem; color: #4b5563; margin-bottom: 0.5rem;">Total Bill Amount:</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: #10b981;">${formatCurrency(totalSum)}</div>
+                </div>
+            `;
+
             document.getElementById('resultPeople').innerHTML = peopleHtml;
-            document.getElementById('resultSettlement').innerHTML = settlementHtml;
+            document.getElementById('resultSettlement').innerHTML = settlementHtml + verifyHtml;
             document.getElementById('inputView').classList.add('hidden');
             document.getElementById('resultView').classList.remove('hidden');
         }
@@ -651,8 +687,15 @@
             try {
                 const result = await Tesseract.recognize(file, 'eng', { logger: () => {} });
                 const text = result.data.text;
+                
+                if (!text || text.trim().length === 0) {
+                    alert('📝 No text detected. Try a clearer photo or type manually below.');
+                    return;
+                }
+
                 const lines = text.split('\n');
                 const pricePattern = /[\d,\.]+(?:\s*(?:k|K))?\s*$/;
+                let foundItems = 0;
 
                 lines.forEach(line => {
                     line = line.trim();
@@ -664,14 +707,19 @@
                         const priceNum = parseInt(price);
                         if (itemName && priceNum > 0) {
                             state.items.push({ name: itemName, price: priceNum, assignedTo: [] });
+                            foundItems++;
                         }
                     }
                 });
 
                 updateItemsList();
-                alert('✨ Receipt scanned! Assign items to people');
-            } catch {
-                alert('OCR failed - try clearer photo or manual entry');
+                if (foundItems > 0) {
+                    alert(`✨ Found ${foundItems} items! Review & assign to people`);
+                } else {
+                    alert('📝 Couldn\'t read prices clearly. Try manual entry below.');
+                }
+            } catch (e) {
+                alert('📝 OCR failed. Just type items manually - it\'s faster anyway! 😄');
             }
         }
 
@@ -679,6 +727,14 @@
         updateUI();
         document.getElementById('newPersonInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addPerson();
+        });
+        
+        // Update state when tax/service amounts change
+        document.getElementById('serviceAmount').addEventListener('change', (e) => {
+            state.serviceAmount = parseFloat(e.target.value) || 0;
+        });
+        document.getElementById('taxAmount').addEventListener('change', (e) => {
+            state.taxAmount = parseFloat(e.target.value) || 0;
         });
     </script>
 </body>
