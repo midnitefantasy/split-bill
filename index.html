@@ -401,11 +401,16 @@
             <!-- OCR with Claude Vision -->
             <div class="card">
                 <button class="btn btn-blue btn-full" onclick="document.getElementById('fileInput').click()" id="ocrButton">
-                    📷 Scan Receipt (Claude Vision)
+                    📷 Scan Receipt (Claude Sonnet 5)
                 </button>
                 <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleVisionOCR(event)" />
                 <div style="font-size: 0.75rem; color: #4b5563; margin-top: 0.5rem; text-align: center;">
-                    ⚡ ~0.3¢ per scan | Powered by Claude Vision
+                    ⚡ ~0.3¢ per scan | Powered by Claude Sonnet 5
+                </div>
+                
+                <!-- OCR Status Display -->
+                <div id="ocrStatus" class="hidden" style="margin-top: 1rem; padding: 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500;">
+                    <div id="ocrStatusContent"></div>
                 </div>
             </div>
 
@@ -628,19 +633,81 @@
             }
         }
 
+        function showOCRStatus(type, message, itemCount = 0) {
+            const statusEl = document.getElementById('ocrStatus');
+            const contentEl = document.getElementById('ocrStatusContent');
+            
+            if (type === 'pending') {
+                statusEl.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(6, 182, 212, 0.1))';
+                statusEl.style.color = '#1e40af';
+                statusEl.style.borderLeft = '4px solid #3b82f6';
+                contentEl.innerHTML = `⏳ ${message}`;
+            } else if (type === 'success') {
+                statusEl.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1))';
+                statusEl.style.color = '#065f46';
+                statusEl.style.borderLeft = '4px solid #10b981';
+                contentEl.innerHTML = `✅ ${message}<br><span style="font-size: 0.8rem; color: #059669;">Found ${itemCount} item${itemCount !== 1 ? 's' : ''}! Assign to people below</span>`;
+            } else if (type === 'error') {
+                statusEl.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1))';
+                statusEl.style.color = '#7f1d1d';
+                statusEl.style.borderLeft = '4px solid #ef4444';
+                contentEl.innerHTML = `❌ ${message}`;
+            }
+            
+            statusEl.classList.remove('hidden');
+        }
+
+        function hideOCRStatus() {
+            document.getElementById('ocrStatus').classList.add('hidden');
+        }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Resize to max 1200px
+                    const maxSize = 1200;
+                    if (width > height) {
+                        if (width > maxSize) {
+                            height *= maxSize / width;
+                            width = maxSize;
+                        }
+                    } else {
+                        if (height > maxSize) {
+                            width *= maxSize / height;
+                            height = maxSize;
+                        }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                    
+                    // Convert to jpeg with compression
+                    const compressed = canvas.toDataURL('image/jpeg', 0.7);
+                    callback(compressed.split(',')[1]);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
         async function handleVisionOCR(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const button = document.getElementById('ocrButton');
             button.disabled = true;
-            button.textContent = '⏳ Scanning...';
+            
+            showOCRStatus('pending', 'Compressing image...');
 
-            try {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const base64 = e.target.result.split(',')[1];
-                    
+            compressImage(file, async (compressedBase64) => {
+                showOCRStatus('pending', 'Scanning with Claude Sonnet...');
+                
+                try {
                     // Call serverless function instead of API directly
                     const response = await fetch('/api/vision', {
                         method: 'POST',
@@ -648,41 +715,50 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            imageBase64: base64,
+                            imageBase64: compressedBase64,
                             apiKey: state.apiKey
                         })
                     });
 
                     if (!response.ok) {
                         const error = await response.json();
+                        showOCRStatus('error', error.error || 'Failed to scan receipt');
                         throw new Error(error.error || 'OCR failed');
                     }
 
                     const data = await response.json();
                     
                     if (!data.success || !data.items) {
+                        showOCRStatus('error', 'Invalid response from scanner');
                         throw new Error('Invalid response format');
                     }
 
                     const items = data.items;
-                    items.forEach(item => {
-                        state.items.push({
-                            name: item.name,
-                            price: item.price,
-                            assignedTo: []
+                    if (items.length === 0) {
+                        showOCRStatus('error', 'No items found in receipt. Try manual entry');
+                    } else {
+                        items.forEach(item => {
+                            state.items.push({
+                                name: item.name,
+                                price: item.price,
+                                assignedTo: []
+                            });
                         });
-                    });
 
-                    updateItemsList();
-                    alert(`✨ Found ${items.length} items! Assign them to people`);
-                };
-                reader.readAsDataURL(file);
-            } catch (error) {
-                alert(`OCR Error: ${error.message}`);
-            } finally {
-                button.disabled = false;
-                button.textContent = '📷 Scan Receipt (Claude Vision)';
-            }
+                        updateItemsList();
+                        showOCRStatus('success', 'Receipt scanned successfully!', items.length);
+                    }
+                } catch (error) {
+                    if (!document.getElementById('ocrStatus').classList.contains('hidden')) {
+                        // Status already shown, don't duplicate
+                    } else {
+                        showOCRStatus('error', error.message);
+                    }
+                } finally {
+                    button.disabled = false;
+                    button.textContent = '📷 Scan Receipt (Claude Sonnet 5)';
+                }
+            });
         }
 
         function calculate() {
