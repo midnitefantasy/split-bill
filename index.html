@@ -8,7 +8,6 @@
     <meta name="apple-mobile-web-app-title" content="Split Bill">
     <meta name="theme-color" content="#9333ea">
     <title>Split Bill</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -75,7 +74,6 @@
 
         input:focus, select:focus {
             outline: none;
-            ring: 2px;
             border-color: #a855f7;
             box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.1);
         }
@@ -107,6 +105,11 @@
 
         .btn:hover {
             box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .btn-blue {
@@ -320,6 +323,36 @@
             color: #4b5563;
             margin-bottom: 0.5rem;
         }
+
+        .setup-view {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .setup-view h2 {
+            color: #111;
+            margin-bottom: 1rem;
+        }
+
+        .setup-view p {
+            color: #4b5563;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .api-key-note {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: #92400e;
+        }
     </style>
 </head>
 <body>
@@ -329,7 +362,22 @@
             <p>who ordered what? 🍽️</p>
         </div>
 
-        <div id="inputView">
+        <!-- API Key Setup -->
+        <div id="setupView" class="setup-view">
+            <h2>🔑 Set Up API Key</h2>
+            <p>Enter your Claude API key to use receipt scanning</p>
+            <div class="api-key-note">
+                💡 Get your API key from <a href="https://console.anthropic.com" target="_blank" style="color: #b45309; text-decoration: underline;">console.anthropic.com</a>
+                <br><br>
+                Your key is stored locally & never sent to our servers
+            </div>
+            <div class="input-group" style="margin-bottom: 0;">
+                <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+                <button class="btn" onclick="setApiKey()">Save</button>
+            </div>
+        </div>
+
+        <div id="inputView" class="hidden">
             <!-- Currency -->
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -350,18 +398,18 @@
                 <div class="pills" id="peopleList"></div>
             </div>
 
-            <!-- OCR -->
+            <!-- OCR with Claude Vision -->
             <div class="card">
-                <button class="btn btn-blue btn-full" onclick="document.getElementById('fileInput').click()">
-                    📷 Snap Receipt (optional)
+                <button class="btn btn-blue btn-full" onclick="document.getElementById('fileInput').click()" id="ocrButton">
+                    📷 Scan Receipt (Claude Vision)
                 </button>
-                <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleOCR(event)" />
+                <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleVisionOCR(event)" />
                 <div style="font-size: 0.75rem; color: #4b5563; margin-top: 0.5rem; text-align: center;">
-                    💡 If OCR struggles, just type items manually below
+                    ⚡ ~0.3¢ per scan | Powered by Claude Vision
                 </div>
             </div>
 
-            <!-- Items -->
+            <!-- Manual Entry -->
             <div class="card">
                 <h2>🍽️ Items</h2>
                 <input type="text" id="itemName" placeholder="item name..." style="width: 100%; margin-bottom: 0.5rem;" />
@@ -426,6 +474,7 @@
 
     <script>
         let state = {
+            apiKey: localStorage.getItem('splitbill_api_key') || '',
             currency: 'IDR',
             currencySymbol: 'Rp',
             people: [],
@@ -435,6 +484,23 @@
             bearer: '',
             newItemAssigned: []
         };
+
+        function setApiKey() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (!key) {
+                alert('Please enter your API key');
+                return;
+            }
+            if (!key.startsWith('sk-ant-')) {
+                alert('Invalid API key format');
+                return;
+            }
+            state.apiKey = key;
+            localStorage.setItem('splitbill_api_key', key);
+            document.getElementById('setupView').classList.add('hidden');
+            document.getElementById('inputView').classList.remove('hidden');
+            updateUI();
+        }
 
         function updateUI() {
             updatePeopleList();
@@ -562,6 +628,85 @@
             }
         }
 
+        async function handleVisionOCR(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const button = document.getElementById('ocrButton');
+            button.disabled = true;
+            button.textContent = '⏳ Scanning...';
+
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const base64 = e.target.result.split(',')[1];
+                    
+                    const response = await fetch('https://api.anthropic.com/v1/messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': state.apiKey,
+                            'anthropic-version': '2023-06-01'
+                        },
+                        body: JSON.stringify({
+                            model: 'claude-opus-4-1',
+                            max_tokens: 1024,
+                            messages: [{
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'image',
+                                        source: {
+                                            type: 'base64',
+                                            media_type: 'image/jpeg',
+                                            data: base64
+                                        }
+                                    },
+                                    {
+                                        type: 'text',
+                                        text: `Extract all menu items and their prices from this receipt. Return ONLY a JSON array with no markdown formatting, like this:
+[
+  {"name": "Nasi Goreng", "price": 45000},
+  {"name": "Mie Kuah", "price": 35000}
+]
+
+If prices have "k" (like "45k"), convert to full number (45000).
+Only return the JSON array, nothing else.`
+                                    }
+                                ]
+                            }]
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error?.message || 'OCR failed');
+                    }
+
+                    const data = await response.json();
+                    const content = data.content[0].text;
+                    
+                    const items = JSON.parse(content);
+                    items.forEach(item => {
+                        state.items.push({
+                            name: item.name,
+                            price: item.price,
+                            assignedTo: []
+                        });
+                    });
+
+                    updateItemsList();
+                    alert(`✨ Found ${items.length} items! Assign them to people`);
+                };
+                reader.readAsDataURL(file);
+            } catch (error) {
+                alert(`OCR Error: ${error.message}`);
+            } finally {
+                button.disabled = false;
+                button.textContent = '📷 Scan Receipt (Claude Vision)';
+            }
+        }
+
         function calculate() {
             if (!state.bearer || state.items.length === 0) {
                 alert('Select bearer & add items');
@@ -582,7 +727,6 @@
                 personTotals[p] = 0;
             });
 
-            // Calculate items subtotal per person
             state.items.forEach(item => {
                 if (item.assignedTo.length > 0) {
                     const perPerson = item.price / item.assignedTo.length;
@@ -593,22 +737,18 @@
                 }
             });
 
-            // Calculate total items for proportional split
             const totalItems = Object.values(personSubtotals).reduce((a, b) => a + b, 0);
 
-            // Add service proportionally based on items
             Object.keys(personSubtotals).forEach(person => {
                 const proportion = totalItems > 0 ? personSubtotals[person] / totalItems : 0;
                 personService[person] = state.serviceAmount * proportion;
             });
 
-            // Add tax proportionally based on items (after service)
             Object.keys(personSubtotals).forEach(person => {
                 const proportion = totalItems > 0 ? personSubtotals[person] / totalItems : 0;
                 personTax[person] = state.taxAmount * proportion;
             });
 
-            // Calculate final totals
             Object.keys(personSubtotals).forEach(person => {
                 personTotals[person] = personSubtotals[person] + personService[person] + personTax[person];
             });
@@ -624,7 +764,6 @@
         }
 
         function showResults(subtotals, services, taxes, totals, orders, settlement) {
-            // Calculate total sum for verification
             const totalSum = Object.values(totals).reduce((a, b) => a + b, 0);
 
             const peopleHtml = state.people.map(person => `
@@ -672,7 +811,7 @@
 
         function shareWhatsApp() {
             if (!state.bearer || state.items.length === 0) return;
-            calculate(); // Recalculate to get current state
+            calculate();
 
             const resultView = document.getElementById('resultView');
             const text = resultView.innerText;
@@ -680,59 +819,24 @@
             window.open(`https://wa.me/?text=${encoded}`, '_blank');
         }
 
-        async function handleOCR(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            try {
-                const result = await Tesseract.recognize(file, 'eng', { logger: () => {} });
-                const text = result.data.text;
-                
-                if (!text || text.trim().length === 0) {
-                    alert('📝 No text detected. Try a clearer photo or type manually below.');
-                    return;
-                }
-
-                const lines = text.split('\n');
-                const pricePattern = /[\d,\.]+(?:\s*(?:k|K))?\s*$/;
-                let foundItems = 0;
-
-                lines.forEach(line => {
-                    line = line.trim();
-                    if (line.length < 3) return;
-                    const match = line.match(pricePattern);
-                    if (match) {
-                        let itemName = line.replace(match[0], '').trim();
-                        let price = match[0].trim().replace(/[k|K]/g, '000').replace(/[.,]/g, '');
-                        const priceNum = parseInt(price);
-                        if (itemName && priceNum > 0) {
-                            state.items.push({ name: itemName, price: priceNum, assignedTo: [] });
-                            foundItems++;
-                        }
-                    }
-                });
-
-                updateItemsList();
-                if (foundItems > 0) {
-                    alert(`✨ Found ${foundItems} items! Review & assign to people`);
-                } else {
-                    alert('📝 Couldn\'t read prices clearly. Try manual entry below.');
-                }
-            } catch (e) {
-                alert('📝 OCR failed. Just type items manually - it\'s faster anyway! 😄');
-            }
+        // Initialize
+        if (!state.apiKey) {
+            document.getElementById('setupView').classList.remove('hidden');
+            document.getElementById('inputView').classList.add('hidden');
+        } else {
+            document.getElementById('setupView').classList.add('hidden');
+            document.getElementById('inputView').classList.remove('hidden');
+            updateUI();
         }
 
-        // Initialize
-        updateUI();
         document.getElementById('newPersonInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addPerson();
         });
-        
-        // Update state when tax/service amounts change
+
         document.getElementById('serviceAmount').addEventListener('change', (e) => {
             state.serviceAmount = parseFloat(e.target.value) || 0;
         });
+
         document.getElementById('taxAmount').addEventListener('change', (e) => {
             state.taxAmount = parseFloat(e.target.value) || 0;
         });
