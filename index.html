@@ -660,6 +660,8 @@
         function hideOCRStatus() {
             document.getElementById('ocrStatus').classList.add('hidden');
         }
+
+        function compressImage(file, callback) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const img = new Image();
