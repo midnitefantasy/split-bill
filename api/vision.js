@@ -58,9 +58,19 @@ Only return the JSON array, nothing else.`
     const data = await response.json();
     const content = data.content[0].text;
     
+    // Parse JSON - handle markdown code blocks
+    let jsonStr = content.trim();
+    if (jsonStr.startsWith('```json')) {
+      jsonStr = jsonStr.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    } else if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/^```\n?/, '').replace(/\n?```$/, '');
+    }
+    
+    const items = JSON.parse(jsonStr);
+    
     return res.status(200).json({ 
       success: true,
-      items: JSON.parse(content)
+      items: items
     });
   } catch (error) {
     return res.status(500).json({ 
