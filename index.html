@@ -641,52 +641,30 @@
                 reader.onload = async (e) => {
                     const base64 = e.target.result.split(',')[1];
                     
-                    const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    // Call serverless function instead of API directly
+                    const response = await fetch('/api/vision', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': state.apiKey,
-                            'anthropic-version': '2023-06-01'
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            model: 'claude-opus-4-1',
-                            max_tokens: 1024,
-                            messages: [{
-                                role: 'user',
-                                content: [
-                                    {
-                                        type: 'image',
-                                        source: {
-                                            type: 'base64',
-                                            media_type: 'image/jpeg',
-                                            data: base64
-                                        }
-                                    },
-                                    {
-                                        type: 'text',
-                                        text: `Extract all menu items and their prices from this receipt. Return ONLY a JSON array with no markdown formatting, like this:
-[
-  {"name": "Nasi Goreng", "price": 45000},
-  {"name": "Mie Kuah", "price": 35000}
-]
-
-If prices have "k" (like "45k"), convert to full number (45000).
-Only return the JSON array, nothing else.`
-                                    }
-                                ]
-                            }]
+                            imageBase64: base64,
+                            apiKey: state.apiKey
                         })
                     });
 
                     if (!response.ok) {
                         const error = await response.json();
-                        throw new Error(error.error?.message || 'OCR failed');
+                        throw new Error(error.error || 'OCR failed');
                     }
 
                     const data = await response.json();
-                    const content = data.content[0].text;
                     
-                    const items = JSON.parse(content);
+                    if (!data.success || !data.items) {
+                        throw new Error('Invalid response format');
+                    }
+
+                    const items = data.items;
                     items.forEach(item => {
                         state.items.push({
                             name: item.name,
