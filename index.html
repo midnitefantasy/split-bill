@@ -64,6 +64,36 @@
             font-size: 0.95rem;
         }
 
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        .step-badge.incomplete {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+
+        .step-badge.complete {
+            background: #10b981;
+            color: white;
+        }
+
         input, select, button {
             font-family: inherit;
             border: 1px solid #e5e7eb;
@@ -76,6 +106,12 @@
             outline: none;
             border-color: #a855f7;
             box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.1);
+        }
+
+        input:disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+            cursor: not-allowed;
         }
 
         .input-group {
@@ -127,6 +163,11 @@
 
         .btn-secondary:hover {
             background: #9ca3af;
+        }
+
+        .btn-small {
+            padding: 0.35rem 0.6rem;
+            font-size: 0.75rem;
         }
 
         .btn-full {
@@ -188,6 +229,30 @@
             color: #666;
         }
 
+        .item-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-edit {
+            background: none;
+            border: none;
+            color: #3b82f6;
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 0;
+            font-weight: 600;
+        }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: #dc2626;
+            cursor: pointer;
+            font-size: 0.875rem;
+            padding: 0;
+        }
+
         .item-tags {
             display: flex;
             flex-wrap: wrap;
@@ -202,17 +267,64 @@
             font-size: 0.75rem;
         }
 
-        .btn-delete {
-            background: none;
-            border: none;
-            color: #dc2626;
-            cursor: pointer;
-            font-size: 0.875rem;
-            padding: 0;
-        }
-
         .hidden {
             display: none;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: flex-end;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 1rem 1rem 0 0;
+            padding: 1.5rem;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .toggle-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .toggle-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e5e7eb;
+            background: #f3f4f6;
+            color: #4b5563;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .toggle-btn.active {
+            background: linear-gradient(to right, #a855f7, #ec4899);
+            color: white;
+            border-color: #a855f7;
+        }
+
+        .toggle-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .label-small {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #4b5563;
+            margin-bottom: 0.5rem;
         }
 
         .result-card {
@@ -261,97 +373,42 @@
             font-size: 0.9rem;
         }
 
-        .settlement-from {
-            font-weight: 600;
-            color: #111;
-        }
-
-        .settlement-to {
-            font-weight: 600;
-            color: #111;
-        }
-
-        .settlement-amount {
-            font-weight: 700;
-            color: #10b981;
-        }
-
         .button-group {
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
         }
 
-        .button-group button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .toggle-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .toggle-btn {
-            padding: 0.5rem 1rem;
-            border: 1px solid #e5e7eb;
-            background: #f3f4f6;
-            color: #4b5563;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-
-        .toggle-btn.active {
-            background: linear-gradient(to right, #a855f7, #ec4899);
-            color: white;
-            border-color: #a855f7;
-        }
-
-        .toggle-btn:hover {
-            background: #e5e7eb;
-        }
-
-        .label-small {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #4b5563;
-            margin-bottom: 0.5rem;
-        }
-
-        .setup-view {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border-radius: 1rem;
-            padding: 2rem;
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-
-        .setup-view h2 {
-            color: #111;
-            margin-bottom: 1rem;
-        }
-
-        .setup-view p {
-            color: #4b5563;
-            margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-        }
-
-        .api-key-note {
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
+        .ocr-status {
+            margin-top: 1rem;
             padding: 1rem;
             border-radius: 0.5rem;
-            margin-bottom: 1rem;
             font-size: 0.875rem;
-            color: #92400e;
+            font-weight: 500;
+            border-left: 4px solid;
+        }
+
+        .ocr-status.pending {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(6, 182, 212, 0.1));
+            color: #1e40af;
+            border-color: #3b82f6;
+        }
+
+        .ocr-status.success {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
+            color: #065f46;
+            border-color: #10b981;
+        }
+
+        .ocr-status.error {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+            color: #7f1d1d;
+            border-color: #ef4444;
+        }
+
+        .disabled-field {
+            opacity: 0.5;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -362,35 +419,29 @@
             <p>who ordered what? 🍽️</p>
         </div>
 
-        <!-- API Key Setup -->
-        <div id="setupView" class="setup-view">
-            <h2>🔑 Set Up API Key</h2>
-            <p>Enter your Claude API key to use receipt scanning</p>
-            <div class="api-key-note">
-                💡 Get your API key from <a href="https://console.anthropic.com" target="_blank" style="color: #b45309; text-decoration: underline;">console.anthropic.com</a>
-                <br><br>
-                Your key is stored locally & never sent to our servers
-            </div>
-            <div class="input-group" style="margin-bottom: 0;">
-                <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
-                <button class="btn" onclick="setApiKey()">Save</button>
+        <!-- Setup View -->
+        <div id="setupView" class="hidden">
+            <div class="card">
+                <h2>🔑 Set Up API Key</h2>
+                <p style="color: #4b5563; font-size: 0.9rem; margin-bottom: 1rem;">Enter your Claude API key to use receipt scanning</p>
+                <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.875rem; color: #92400e;">
+                    💡 Get your API key from <a href="https://console.anthropic.com" target="_blank" style="color: #b45309; text-decoration: underline;">console.anthropic.com</a>
+                </div>
+                <div class="input-group" style="margin-bottom: 0;">
+                    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+                    <button class="btn" onclick="setApiKey()">Save</button>
+                </div>
             </div>
         </div>
 
+        <!-- Main Input View -->
         <div id="inputView" class="hidden">
-            <!-- Currency -->
+            <!-- Step 1: People -->
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 600; color: #4b5563;">Currency</span>
-                    <button class="btn" onclick="editCurrency()" style="padding: 0.5rem 1rem;">
-                        <span id="currencyDisplay">IDR</span>
-                    </button>
+                <div class="step-indicator">
+                    <span class="step-badge" id="step1Badge">1</span>
+                    <span>Add People</span>
                 </div>
-            </div>
-
-            <!-- People -->
-            <div class="card">
-                <h2>👥 Who's here?</h2>
                 <div class="input-group">
                     <input type="text" id="newPersonInput" placeholder="name..." />
                     <button class="btn" onclick="addPerson()">+</button>
@@ -398,54 +449,66 @@
                 <div class="pills" id="peopleList"></div>
             </div>
 
-            <!-- OCR with Claude Vision -->
-            <div class="card">
+            <!-- Step 2: Items -->
+            <div class="card" id="itemsCard">
+                <div class="step-indicator">
+                    <span class="step-badge" id="step2Badge">2</span>
+                    <span>Add Items</span>
+                </div>
+                
+                <!-- OCR Button -->
                 <button class="btn btn-blue btn-full" onclick="document.getElementById('fileInput').click()" id="ocrButton">
-                    📷 Scan Receipt (Claude Sonnet 5)
+                    📷 Scan Receipt
                 </button>
                 <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleVisionOCR(event)" />
-                <div style="font-size: 0.75rem; color: #4b5563; margin-top: 0.5rem; text-align: center;">
-                    ⚡ ~0.3¢ per scan | Powered by Claude Sonnet 5
-                </div>
-                
-                <!-- OCR Status Display -->
-                <div id="ocrStatus" class="hidden" style="margin-top: 1rem; padding: 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500;">
-                    <div id="ocrStatusContent"></div>
-                </div>
-            </div>
+                <div id="ocrStatus" class="hidden ocr-status"></div>
 
-            <!-- Manual Entry -->
-            <div class="card">
-                <h2>🍽️ Items</h2>
-                <input type="text" id="itemName" placeholder="item name..." style="width: 100%; margin-bottom: 0.5rem;" />
-                <input type="number" id="itemPrice" placeholder="price..." style="width: 100%; margin-bottom: 0.5rem;" />
-                
-                <div style="margin-bottom: 1rem;">
-                    <span class="label-small">Assign to:</span>
-                    <div class="toggle-buttons" id="assignButtons"></div>
+                <!-- Manual Entry -->
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                    <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 0.75rem;">Or add manually:</p>
+                    <input type="text" id="itemName" placeholder="item name..." style="width: 100%; margin-bottom: 0.5rem;" />
+                    <input type="number" id="itemPrice" placeholder="price..." style="width: 100%; margin-bottom: 0.5rem;" />
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <span class="label-small">Assign to:</span>
+                        <div class="toggle-buttons" id="assignButtons"></div>
+                    </div>
+
+                    <button class="btn btn-full" onclick="addItem()">Add Item</button>
                 </div>
 
-                <button class="btn btn-full" onclick="addItem()">Add Item</button>
-
+                <!-- Items List -->
                 <div id="itemsList" style="margin-top: 1rem;"></div>
             </div>
 
-            <!-- Tax & Service -->
-            <div class="card">
-                <h2>💰 Tax & Service</h2>
-                <div>
-                    <span class="label-small">Service Charge (amount)</span>
-                    <input type="number" id="serviceAmount" value="0" style="width: 100%; margin-bottom: 1rem;" />
+            <!-- Step 3: Tax & Service -->
+            <div class="card" id="chargesCard">
+                <div class="step-indicator">
+                    <span class="step-badge" id="step3Badge">3</span>
+                    <span>Tax & Service</span>
                 </div>
                 <div>
-                    <span class="label-small">Tax (amount)</span>
-                    <input type="number" id="taxAmount" value="0" style="width: 100%;" />
+                    <label class="label-small">Service Charge</label>
+                    <div class="input-group" style="margin-bottom: 1rem;">
+                        <input type="number" id="serviceAmount" value="0" />
+                        <button class="btn btn-small" onclick="editField('service')">Edit</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="label-small">Tax</label>
+                    <div class="input-group">
+                        <input type="number" id="taxAmount" value="0" />
+                        <button class="btn btn-small" onclick="editField('tax')">Edit</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Bearer -->
-            <div class="card">
-                <h2>💳 Who paid?</h2>
+            <!-- Step 4: Bearer -->
+            <div class="card" id="bearerCard">
+                <div class="step-indicator">
+                    <span class="step-badge" id="step4Badge">4</span>
+                    <span>Who Paid?</span>
+                </div>
                 <div class="toggle-buttons" id="bearerButtons"></div>
             </div>
 
@@ -455,6 +518,7 @@
             </button>
         </div>
 
+        <!-- Results View -->
         <div id="resultView" class="hidden">
             <div class="card">
                 <div style="text-align: center; margin-bottom: 1.5rem;">
@@ -475,6 +539,25 @@
                 </div>
             </div>
         </div>
+
+        <!-- Edit Item Modal -->
+        <div id="editItemModal" class="modal hidden">
+            <div class="modal-content">
+                <h2 style="margin-bottom: 1rem;">Edit Item</h2>
+                <input type="text" id="editItemName" placeholder="item name..." style="width: 100%; margin-bottom: 1rem;" />
+                <input type="number" id="editItemPrice" placeholder="price..." style="width: 100%; margin-bottom: 1rem;" />
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <span class="label-small">Assign to:</span>
+                    <div class="toggle-buttons" id="editItemButtons"></div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-full" onclick="saveEditedItem()">Save Changes</button>
+                    <button class="btn btn-secondary btn-full" onclick="closeEditModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -487,7 +570,8 @@
             serviceAmount: 0,
             taxAmount: 0,
             bearer: '',
-            newItemAssigned: []
+            newItemAssigned: [],
+            editingItemIdx: null
         };
 
         function setApiKey() {
@@ -507,11 +591,36 @@
             updateUI();
         }
 
+        function updateValidation() {
+            const hasPeople = state.people.length > 0;
+            const hasItems = state.items.length > 0;
+            const hasBearar = state.bearer !== '';
+
+            // Step badges
+            document.getElementById('step1Badge').className = `step-badge ${hasPeople ? 'complete' : 'incomplete'}`;
+            document.getElementById('step1Badge').textContent = hasPeople ? '✓' : '1';
+            
+            document.getElementById('step2Badge').className = `step-badge ${hasItems ? 'complete' : 'incomplete'}`;
+            document.getElementById('step2Badge').textContent = hasItems ? '✓' : '2';
+
+            document.getElementById('step3Badge').className = `step-badge complete`;
+            document.getElementById('step3Badge').textContent = '✓';
+
+            document.getElementById('step4Badge').className = `step-badge ${hasBearar ? 'complete' : 'incomplete'}`;
+            document.getElementById('step4Badge').textContent = hasBearar ? '✓' : '4';
+
+            // Disable cards
+            document.getElementById('itemsCard').classList.toggle('disabled-field', !hasPeople);
+            document.getElementById('chargesCard').classList.toggle('disabled-field', !hasItems);
+            document.getElementById('bearerCard').classList.toggle('disabled-field', !hasItems);
+        }
+
         function updateUI() {
             updatePeopleList();
             updateAssignButtons();
             updateBearerButtons();
             updateItemsList();
+            updateValidation();
         }
 
         function updatePeopleList() {
@@ -551,7 +660,10 @@
                             <div class="item-name">${item.name}</div>
                             <div class="item-price">${formatCurrency(item.price)}</div>
                         </div>
-                        <button class="btn-delete" onclick="deleteItem(${idx})">🗑️</button>
+                        <div class="item-actions">
+                            <button class="btn-edit" onclick="openEditModal(${idx})">✏️ Edit</button>
+                            <button class="btn-delete" onclick="deleteItem(${idx})">🗑️</button>
+                        </div>
                     </div>
                     <div class="item-tags">
                         ${item.assignedTo.map(person => `<span class="item-tag">${person}</span>`).join('')}
@@ -591,6 +703,7 @@
 
         function setBearer(person) {
             state.bearer = state.bearer === person ? '' : person;
+            updateValidation();
             updateBearerButtons();
         }
 
@@ -613,7 +726,56 @@
 
         function deleteItem(idx) {
             state.items.splice(idx, 1);
-            updateItemsList();
+            updateUI();
+        }
+
+        function openEditModal(idx) {
+            state.editingItemIdx = idx;
+            const item = state.items[idx];
+            document.getElementById('editItemName').value = item.name;
+            document.getElementById('editItemPrice').value = item.price;
+            state.newItemAssigned = [...item.assignedTo];
+            updateEditButtons();
+            document.getElementById('editItemModal').classList.remove('hidden');
+        }
+
+        function updateEditButtons() {
+            const buttons = document.getElementById('editItemButtons');
+            buttons.innerHTML = state.people.map(person => `
+                <button class="toggle-btn ${state.newItemAssigned.includes(person) ? 'active' : ''}" onclick="toggleEditAssign('${person}')">
+                    ${person}
+                </button>
+            `).join('');
+        }
+
+        function toggleEditAssign(person) {
+            if (state.newItemAssigned.includes(person)) {
+                state.newItemAssigned = state.newItemAssigned.filter(p => p !== person);
+            } else {
+                state.newItemAssigned.push(person);
+            }
+            updateEditButtons();
+        }
+
+        function saveEditedItem() {
+            const name = document.getElementById('editItemName').value.trim();
+            const price = parseFloat(document.getElementById('editItemPrice').value);
+
+            if (name && price > 0 && state.newItemAssigned.length > 0) {
+                state.items[state.editingItemIdx] = {
+                    name,
+                    price,
+                    assignedTo: [...state.newItemAssigned]
+                };
+                state.editingItemIdx = null;
+                state.newItemAssigned = [];
+                updateUI();
+                closeEditModal();
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editItemModal').classList.add('hidden');
         }
 
         function formatCurrency(amount) {
@@ -623,42 +785,31 @@
             return `${state.currencySymbol}${amount.toFixed(2)}`;
         }
 
-        function editCurrency() {
-            const curr = prompt('Enter currency (IDR, USD, SGD, PHP, THB):', state.currency);
-            if (curr) {
-                state.currency = curr;
-                const symbols = { IDR: 'Rp', USD: '$', SGD: 'S$', PHP: '₱', THB: '฿' };
-                state.currencySymbol = symbols[curr] || curr;
-                document.getElementById('currencyDisplay').textContent = curr;
+        function editField(field) {
+            if (field === 'service') {
+                const val = prompt('Enter service charge:', state.serviceAmount);
+                if (val !== null) state.serviceAmount = parseFloat(val) || 0;
+            } else if (field === 'tax') {
+                const val = prompt('Enter tax amount:', state.taxAmount);
+                if (val !== null) state.taxAmount = parseFloat(val) || 0;
             }
+            document.getElementById('serviceAmount').value = state.serviceAmount;
+            document.getElementById('taxAmount').value = state.taxAmount;
         }
 
         function showOCRStatus(type, message, itemCount = 0) {
             const statusEl = document.getElementById('ocrStatus');
-            const contentEl = document.getElementById('ocrStatusContent');
+            statusEl.className = `ocr-status ${type}`;
             
-            if (type === 'pending') {
-                statusEl.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(6, 182, 212, 0.1))';
-                statusEl.style.color = '#1e40af';
-                statusEl.style.borderLeft = '4px solid #3b82f6';
-                contentEl.innerHTML = `⏳ ${message}`;
-            } else if (type === 'success') {
-                statusEl.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1))';
-                statusEl.style.color = '#065f46';
-                statusEl.style.borderLeft = '4px solid #10b981';
-                contentEl.innerHTML = `✅ ${message}<br><span style="font-size: 0.8rem; color: #059669;">Found ${itemCount} item${itemCount !== 1 ? 's' : ''}! Assign to people below</span>`;
+            if (type === 'success') {
+                statusEl.innerHTML = `✅ ${message}<br><span style="font-size: 0.8rem;">Found ${itemCount} item${itemCount !== 1 ? 's' : ''}</span>`;
             } else if (type === 'error') {
-                statusEl.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1))';
-                statusEl.style.color = '#7f1d1d';
-                statusEl.style.borderLeft = '4px solid #ef4444';
-                contentEl.innerHTML = `❌ ${message}`;
+                statusEl.innerHTML = `❌ ${message}`;
+            } else {
+                statusEl.innerHTML = `⏳ ${message}`;
             }
             
             statusEl.classList.remove('hidden');
-        }
-
-        function hideOCRStatus() {
-            document.getElementById('ocrStatus').classList.add('hidden');
         }
 
         function compressImage(file, callback) {
@@ -670,7 +821,6 @@
                     let width = img.width;
                     let height = img.height;
                     
-                    // Resize to max 1200px
                     const maxSize = 1200;
                     if (width > height) {
                         if (width > maxSize) {
@@ -688,7 +838,6 @@
                     canvas.height = height;
                     canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                     
-                    // Convert to jpeg with compression
                     const compressed = canvas.toDataURL('image/jpeg', 0.7);
                     callback(compressed.split(',')[1]);
                 };
@@ -704,18 +853,13 @@
             const button = document.getElementById('ocrButton');
             button.disabled = true;
             
-            showOCRStatus('pending', 'Compressing image...');
+            showOCRStatus('pending', 'Scanning receipt...');
 
             compressImage(file, async (compressedBase64) => {
-                showOCRStatus('pending', 'Scanning with Claude Sonnet...');
-                
                 try {
-                    // Call serverless function instead of API directly
                     const response = await fetch('/api/vision', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             imageBase64: compressedBase64,
                             apiKey: state.apiKey
@@ -724,20 +868,19 @@
 
                     if (!response.ok) {
                         const error = await response.json();
-                        showOCRStatus('error', error.error || 'Failed to scan receipt');
-                        throw new Error(error.error || 'OCR failed');
+                        showOCRStatus('error', error.error || 'Failed to scan');
+                        throw new Error(error.error);
                     }
 
                     const data = await response.json();
-                    
                     if (!data.success || !data.items) {
-                        showOCRStatus('error', 'Invalid response from scanner');
-                        throw new Error('Invalid response format');
+                        showOCRStatus('error', 'Invalid response');
+                        return;
                     }
 
                     const items = data.items;
                     if (items.length === 0) {
-                        showOCRStatus('error', 'No items found in receipt. Try manual entry');
+                        showOCRStatus('error', 'No items found');
                     } else {
                         items.forEach(item => {
                             state.items.push({
@@ -747,25 +890,26 @@
                             });
                         });
 
-                        updateItemsList();
+                        if (data.tax) state.taxAmount = data.tax;
+                        if (data.service) state.serviceAmount = data.service;
+
+                        document.getElementById('taxAmount').value = state.taxAmount;
+                        document.getElementById('serviceAmount').value = state.serviceAmount;
+
+                        updateUI();
                         showOCRStatus('success', 'Receipt scanned successfully!', items.length);
                     }
                 } catch (error) {
-                    if (!document.getElementById('ocrStatus').classList.contains('hidden')) {
-                        // Status already shown, don't duplicate
-                    } else {
-                        showOCRStatus('error', error.message);
-                    }
+                    showOCRStatus('error', error.message);
                 } finally {
                     button.disabled = false;
-                    button.textContent = '📷 Scan Receipt (Claude Sonnet 5)';
                 }
             });
         }
 
         function calculate() {
             if (!state.bearer || state.items.length === 0) {
-                alert('Select bearer & add items');
+                alert('Complete all steps first');
                 return;
             }
 
@@ -798,14 +942,7 @@
             Object.keys(personSubtotals).forEach(person => {
                 const proportion = totalItems > 0 ? personSubtotals[person] / totalItems : 0;
                 personService[person] = state.serviceAmount * proportion;
-            });
-
-            Object.keys(personSubtotals).forEach(person => {
-                const proportion = totalItems > 0 ? personSubtotals[person] / totalItems : 0;
                 personTax[person] = state.taxAmount * proportion;
-            });
-
-            Object.keys(personSubtotals).forEach(person => {
                 personTotals[person] = personSubtotals[person] + personService[person] + personTax[person];
             });
 
@@ -825,7 +962,7 @@
             const peopleHtml = state.people.map(person => `
                 <div class="result-card">
                     <div class="result-person-name">${person.toUpperCase()}</div>
-                    <div class="result-order">Order: ${orders[person].length > 0 ? orders[person].join(', ') : 'nothing'}</div>
+                    <div class="result-order">Order: ${orders[person].join(', ') || 'nothing'}</div>
                     <div style="font-size: 0.875rem; color: #4b5563; line-height: 1.6; margin-top: 0.5rem;">
                         <div>Subtotal: ${formatCurrency(subtotals[person])}</div>
                         <div>Service: ${formatCurrency(services[person])}</div>
@@ -837,21 +974,17 @@
 
             const settlementHtml = settlement.map(s => `
                 <div class="settlement-item">
-                    <span class="settlement-from">${s.from}</span> owes 
-                    <span class="settlement-to">${s.to}</span>: 
-                    <span class="settlement-amount">${formatCurrency(s.amount)}</span>
+                    <strong>${s.from}</strong> owes <strong>${s.to}</strong>: <span style="color: #10b981; font-weight: 700;">${formatCurrency(s.amount)}</span>
                 </div>
             `).join('');
 
-            const verifyHtml = `
+            document.getElementById('resultPeople').innerHTML = peopleHtml;
+            document.getElementById('resultSettlement').innerHTML = settlementHtml + `
                 <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(16, 185, 129, 0.3); text-align: center;">
-                    <div style="font-size: 0.875rem; color: #4b5563; margin-bottom: 0.5rem;">Total Bill Amount:</div>
+                    <div style="font-size: 0.875rem; color: #4b5563; margin-bottom: 0.5rem;">Total Bill:</div>
                     <div style="font-size: 1.25rem; font-weight: 700; color: #10b981;">${formatCurrency(totalSum)}</div>
                 </div>
             `;
-
-            document.getElementById('resultPeople').innerHTML = peopleHtml;
-            document.getElementById('resultSettlement').innerHTML = settlementHtml + verifyHtml;
             document.getElementById('inputView').classList.add('hidden');
             document.getElementById('resultView').classList.remove('hidden');
         }
@@ -862,28 +995,26 @@
         }
 
         function screenshot() {
-            alert('📱 Ready to save! Use: hold power + volume up for native screenshot');
+            alert('📱 Use: hold power + volume up');
         }
 
         function shareWhatsApp() {
-            if (!state.bearer || state.items.length === 0) return;
-            calculate();
-
             const resultView = document.getElementById('resultView');
             const text = resultView.innerText;
-            const encoded = encodeURIComponent(text);
-            window.open(`https://wa.me/?text=${encoded}`, '_blank');
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
         }
 
         // Initialize
-        if (!state.apiKey) {
-            document.getElementById('setupView').classList.remove('hidden');
-            document.getElementById('inputView').classList.add('hidden');
-        } else {
-            document.getElementById('setupView').classList.add('hidden');
-            document.getElementById('inputView').classList.remove('hidden');
-            updateUI();
-        }
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!state.apiKey) {
+                document.getElementById('setupView').classList.remove('hidden');
+            } else {
+                document.getElementById('inputView').classList.remove('hidden');
+                updateUI();
+            }
+            // Ensure modal is hidden on load
+            document.getElementById('editItemModal').classList.add('hidden');
+        });
 
         document.getElementById('newPersonInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addPerson();
