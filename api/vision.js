@@ -34,14 +34,23 @@ export default async function handler(req, res) {
             },
             {
               type: 'text',
-              text: `Extract all menu items and their prices from this receipt. Return ONLY a JSON array with no markdown formatting, like this:
-[
-  {"name": "Nasi Goreng", "price": 45000},
-  {"name": "Mie Kuah", "price": 35000}
-]
+              text: `Extract menu items, tax, and service charges from this receipt. Return ONLY valid JSON (no markdown) in this exact format:
+{
+  "items": [
+    {"name": "Nasi Goreng", "price": 45000},
+    {"name": "Mie Kuah", "price": 35000}
+  ],
+  "tax": 12000,
+  "service": 8000
+}
 
-If prices have "k" (like "45k"), convert to full number (45000).
-Only return the JSON array, nothing else.`
+Rules:
+- items: array of {name, price}
+- tax: number (0 if not found). Look for "tax", "pajak", "pb", "tpb", etc
+- service: number (0 if not found). Look for "service", "sc", "svc", etc
+- If prices have "k" (like "45k"), convert to full number (45000)
+- Convert all amounts to numbers, strip commas/spaces
+- Return ONLY the JSON object, no explanations or markdown`
             }
           ]
         }]
@@ -56,21 +65,23 @@ Only return the JSON array, nothing else.`
     }
 
     const data = await response.json();
-    const content = data.content[0].text;
+    const content = data.content[0].text.trim();
     
-    // Parse JSON - handle markdown code blocks
-    let jsonStr = content.trim();
+    // Parse JSON - handle any markdown formatting
+    let jsonStr = content;
     if (jsonStr.startsWith('```json')) {
       jsonStr = jsonStr.replace(/^```json\n?/, '').replace(/\n?```$/, '');
     } else if (jsonStr.startsWith('```')) {
       jsonStr = jsonStr.replace(/^```\n?/, '').replace(/\n?```$/, '');
     }
     
-    const items = JSON.parse(jsonStr);
+    const result = JSON.parse(jsonStr);
     
     return res.status(200).json({ 
       success: true,
-      items: items
+      items: result.items || [],
+      tax: result.tax || 0,
+      service: result.service || 0
     });
   } catch (error) {
     return res.status(500).json({ 
