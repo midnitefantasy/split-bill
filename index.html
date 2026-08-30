@@ -268,7 +268,7 @@
         }
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
         .modal {
@@ -417,6 +417,7 @@
         <div class="header">
             <h1>Split Bill</h1>
             <p>who ordered what? 🍽️</p>
+            <button class="btn btn-secondary" style="margin-top: 1rem; padding: 0.35rem 0.75rem; font-size: 0.75rem;" id="resetKeyBtn" onclick="resetApiKey()" style="display: none;">Reset API Key</button>
         </div>
 
         <!-- Setup View -->
@@ -581,14 +582,27 @@
                 return;
             }
             if (!key.startsWith('sk-ant-')) {
-                alert('Invalid API key format');
+                alert('Invalid API key format. Must start with sk-ant-');
                 return;
             }
             state.apiKey = key;
             localStorage.setItem('splitbill_api_key', key);
             document.getElementById('setupView').classList.add('hidden');
             document.getElementById('inputView').classList.remove('hidden');
+            document.getElementById('resetKeyBtn').style.display = 'inline-block';
             updateUI();
+        }
+
+        function resetApiKey() {
+            if (confirm('Clear your API key?')) {
+                state.apiKey = '';
+                localStorage.removeItem('splitbill_api_key');
+                document.getElementById('setupView').classList.remove('hidden');
+                document.getElementById('inputView').classList.add('hidden');
+                document.getElementById('resultView').classList.add('hidden');
+                document.getElementById('resetKeyBtn').style.display = 'none';
+                document.getElementById('apiKeyInput').value = '';
+            }
         }
 
         function updateValidation() {
@@ -838,8 +852,16 @@
                     canvas.height = height;
                     canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                     
-                    const compressed = canvas.toDataURL('image/jpeg', 0.7);
-                    callback(compressed.split(',')[1]);
+                    // Get base64 without data URI prefix
+                    canvas.toBlob(blob => {
+                        const reader2 = new FileReader();
+                        reader2.onload = (e2) => {
+                            // Extract just the base64 part
+                            const base64str = e2.target.result.split(',')[1];
+                            callback(base64str);
+                        };
+                        reader2.readAsDataURL(blob);
+                    }, 'image/jpeg', 0.7);
                 };
                 img.src = e.target.result;
             };
@@ -850,6 +872,12 @@
             const file = event.target.files[0];
             if (!file) return;
 
+            // Check if API key exists
+            if (!state.apiKey) {
+                alert('Please set your API key first in settings');
+                return;
+            }
+
             const button = document.getElementById('ocrButton');
             button.disabled = true;
             
@@ -857,6 +885,7 @@
 
             compressImage(file, async (compressedBase64) => {
                 try {
+                    console.log('Sending to API...');
                     const response = await fetch('/api/vision', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -866,21 +895,26 @@
                         })
                     });
 
+                    console.log('Response status:', response.status);
+
                     if (!response.ok) {
                         const error = await response.json();
-                        showOCRStatus('error', error.error || 'Failed to scan');
+                        console.error('API Error:', error);
+                        showOCRStatus('error', error.error || 'Failed to scan receipt');
                         throw new Error(error.error);
                     }
 
                     const data = await response.json();
+                    console.log('OCR Result:', data);
+                    
                     if (!data.success || !data.items) {
-                        showOCRStatus('error', 'Invalid response');
+                        showOCRStatus('error', 'Invalid response from API');
                         return;
                     }
 
                     const items = data.items;
                     if (items.length === 0) {
-                        showOCRStatus('error', 'No items found');
+                        showOCRStatus('error', 'No items found on receipt');
                     } else {
                         items.forEach(item => {
                             state.items.push({
@@ -900,7 +934,8 @@
                         showOCRStatus('success', 'Receipt scanned successfully!', items.length);
                     }
                 } catch (error) {
-                    showOCRStatus('error', error.message);
+                    console.error('Full error:', error);
+                    showOCRStatus('error', error.message || 'Failed to process receipt');
                 } finally {
                     button.disabled = false;
                 }
@@ -1008,8 +1043,10 @@
         window.addEventListener('DOMContentLoaded', () => {
             if (!state.apiKey) {
                 document.getElementById('setupView').classList.remove('hidden');
+                document.getElementById('resetKeyBtn').style.display = 'none';
             } else {
                 document.getElementById('inputView').classList.remove('hidden');
+                document.getElementById('resetKeyBtn').style.display = 'inline-block';
                 updateUI();
             }
             // Ensure modal is hidden on load
