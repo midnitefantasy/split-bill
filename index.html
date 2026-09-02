@@ -424,8 +424,8 @@
         <!-- Setup View -->
         <div id="setupView" class="hidden">
             <div class="card">
-                <h2>🔑 Set Up API Key</h2>
-                <p style="color: #4b5563; font-size: 0.9rem; margin-bottom: 1rem;">Enter your Claude API key to use receipt scanning</p>
+                <h2>🔑 Set Up API Key (Optional)</h2>
+                <p style="color: #4b5563; font-size: 0.9rem; margin-bottom: 1rem;">Enter your Claude API key to use receipt scanning. Or skip to add items manually.</p>
                 <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.875rem; color: #92400e;">
                     💡 Get your API key from <a href="https://console.anthropic.com" target="_blank" style="color: #b45309; text-decoration: underline;">console.anthropic.com</a>
                 </div>
@@ -433,6 +433,7 @@
                     <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
                     <button class="btn" onclick="setApiKey()">Save</button>
                 </div>
+                <button class="btn btn-secondary btn-full" style="margin-top: 1rem;" onclick="skipApiKey()">Skip (Use Without OCR)</button>
             </div>
         </div>
 
@@ -459,15 +460,17 @@
                 </div>
                 
                 <!-- OCR Button -->
-                <button class="btn btn-blue btn-full" onclick="document.getElementById('fileInput').click()" id="ocrButton">
-                    📷 Scan Receipt
-                </button>
-                <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleVisionOCR(event)" />
-                <div id="ocrStatus" class="hidden ocr-status"></div>
+                <div id="ocrButtonContainer">
+                    <button class="btn btn-blue btn-full" onclick="document.getElementById('fileInput').click()" id="ocrButton">
+                        📷 Scan Receipt
+                    </button>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleVisionOCR(event)" />
+                    <div id="ocrStatus" class="hidden ocr-status"></div>
+                </div>
 
                 <!-- Manual Entry -->
                 <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
-                    <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 0.75rem;">Or add manually:</p>
+                    <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 0.75rem;">Add items manually:</p>
                     <input type="text" id="itemName" placeholder="item name..." style="width: 100%; margin-bottom: 0.5rem;" />
                     <input type="number" id="itemPrice" placeholder="price..." style="width: 100%; margin-bottom: 0.5rem;" />
                     
@@ -563,23 +566,32 @@
     </div>
 
     <script>
-        let state = {
-            apiKey: localStorage.getItem('splitbill_api_key') || '',
-            currency: 'IDR',
-            currencySymbol: 'Rp',
-            people: [],
-            items: [],
-            serviceAmount: 0,
-            taxAmount: 0,
-            bearer: '',
-            newItemAssigned: [],
-            editingItemIdx: null
-        };
+        // Safari compatibility fixes
+        if (!Object.keys) {
+            Object.keys = function(obj) {
+                let keys = [];
+                for (let i in obj) {
+                    if (obj.hasOwnProperty(i)) keys.push(i);
+                }
+                return keys;
+            };
+        }
+
+        if (!Array.prototype.reduce) {
+            Array.prototype.reduce = function(callback, initialValue) {
+                let accumulator = initialValue !== undefined ? initialValue : this[0];
+                let startIndex = initialValue !== undefined ? 0 : 1;
+                for (let i = startIndex; i < this.length; i++) {
+                    accumulator = callback(accumulator, this[i], i, this);
+                }
+                return accumulator;
+            };
+        }
 
         function setApiKey() {
             const key = document.getElementById('apiKeyInput').value.trim();
             if (!key) {
-                alert('Please enter your API key');
+                alert('Please enter your API key or click "Skip"');
                 return;
             }
             if (!key.startsWith('sk-ant-')) {
@@ -587,17 +599,41 @@
                 return;
             }
             state.apiKey = key;
-            localStorage.setItem('splitbill_api_key', key);
+            try {
+                localStorage.setItem('splitbill_api_key', key);
+                localStorage.setItem('splitbill_setup_done', 'true');
+            } catch (e) {
+                console.log('localStorage not available in preview');
+            }
             document.getElementById('setupView').classList.add('hidden');
             document.getElementById('inputView').classList.remove('hidden');
             document.getElementById('resetKeyBtn').style.display = 'inline-block';
             updateUI();
         }
 
-        function resetApiKey() {
-            if (confirm('Clear your API key?')) {
-                state.apiKey = '';
+        function skipApiKey() {
+            state.apiKey = '';
+            try {
                 localStorage.removeItem('splitbill_api_key');
+                localStorage.setItem('splitbill_setup_done', 'true');
+            } catch (e) {
+                console.log('localStorage not available in preview');
+            }
+            document.getElementById('setupView').classList.add('hidden');
+            document.getElementById('inputView').classList.remove('hidden');
+            document.getElementById('resetKeyBtn').style.display = 'none';
+            updateUI();
+        }
+
+        function resetApiKey() {
+            if (confirm('Clear your API key and start over?')) {
+                state.apiKey = '';
+                try {
+                    localStorage.removeItem('splitbill_api_key');
+                    localStorage.removeItem('splitbill_setup_done');
+                } catch (e) {
+                    console.log('localStorage not available in preview');
+                }
                 document.getElementById('setupView').classList.remove('hidden');
                 document.getElementById('inputView').classList.add('hidden');
                 document.getElementById('resultView').classList.add('hidden');
@@ -636,6 +672,14 @@
             updateBearerButtons();
             updateItemsList();
             updateValidation();
+            
+            // Hide OCR button if no API key
+            const ocrContainer = document.getElementById('ocrButtonContainer');
+            if (state.apiKey) {
+                ocrContainer.style.display = 'block';
+            } else {
+                ocrContainer.style.display = 'none';
+            }
         }
 
         function updatePeopleList() {
@@ -764,11 +808,13 @@
         }
 
         function toggleEditAssign(person) {
+            console.log('Toggle clicked for:', person);
             if (state.newItemAssigned.includes(person)) {
                 state.newItemAssigned = state.newItemAssigned.filter(p => p !== person);
             } else {
                 state.newItemAssigned.push(person);
             }
+            console.log('After toggle:', state.newItemAssigned);
             updateEditButtons();
         }
 
@@ -776,16 +822,22 @@
             const name = document.getElementById('editItemName').value.trim();
             const price = parseFloat(document.getElementById('editItemPrice').value);
 
+            console.log('Saving item:', { name, price, assignedTo: state.newItemAssigned });
+
             if (name && price > 0 && state.newItemAssigned.length > 0) {
                 state.items[state.editingItemIdx] = {
                     name,
                     price,
                     assignedTo: [...state.newItemAssigned]
                 };
+                console.log('Item saved. Updated items:', state.items);
                 state.editingItemIdx = null;
                 state.newItemAssigned = [];
                 updateUI();
                 closeEditModal();
+            } else {
+                alert('❌ Fill in item name, price, and select at least one person');
+                console.log('Save failed:', { name, price, assignedToLength: state.newItemAssigned.length });
             }
         }
 
@@ -875,7 +927,7 @@
 
             // Check if API key exists
             if (!state.apiKey) {
-                alert('Please set your API key first in settings');
+                alert('❌ OCR requires an API key. Click "Reset API Key" in header to add one.');
                 return;
             }
 
@@ -944,8 +996,22 @@
         }
 
         function calculate() {
-            if (!state.bearer || state.items.length === 0) {
-                alert('Complete all steps first');
+            console.log('Calculate clicked. State:', state);
+            
+            if (!state.bearer) {
+                alert('❌ Please select who paid (bearer)');
+                return;
+            }
+            
+            if (state.items.length === 0) {
+                alert('❌ No items added yet');
+                return;
+            }
+
+            // Check if any items have people assigned
+            const itemsWithAssignment = state.items.filter(item => item.assignedTo.length > 0);
+            if (itemsWithAssignment.length === 0) {
+                alert('❌ Please assign people to at least one item. Click ✏️ Edit on each item to assign.');
                 return;
             }
 
@@ -989,38 +1055,87 @@
                 }
             });
 
+            console.log('Calculation complete:', { personSubtotals, personService, personTax, personTotals, settlement });
             showResults(personSubtotals, personService, personTax, personTotals, personOrders, settlement);
         }
 
         function showResults(subtotals, services, taxes, totals, orders, settlement) {
             const totalSum = Object.values(totals).reduce((a, b) => a + b, 0);
 
-            const peopleHtml = state.people.map(person => `
-                <div class="result-card">
-                    <div class="result-person-name">${person.toUpperCase()}</div>
-                    <div class="result-order">Order: ${orders[person].join(', ') || 'nothing'}</div>
-                    <div style="font-size: 0.875rem; color: #4b5563; line-height: 1.6; margin-top: 0.5rem;">
-                        <div>Subtotal: ${formatCurrency(subtotals[person])}</div>
-                        <div>Service: ${formatCurrency(services[person])}</div>
-                        <div>Tax: ${formatCurrency(taxes[person])}</div>
+            // Build detailed person breakdown
+            const peopleHtml = state.people.map(person => {
+                const items = orders[person] || [];
+                const itemsHtml = items.map(itemName => {
+                    const item = state.items.find(i => i.name === itemName);
+                    const itemPrice = item ? item.price / item.assignedTo.length : 0;
+                    return `<div style="margin-left: 1rem; color: #4b5563;">• ${itemName}: ${formatCurrency(itemPrice)}</div>`;
+                }).join('');
+
+                return `
+                    <div style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e5e7eb;">
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem;">
+                            <div style="font-weight: 700; font-size: 1.125rem; color: #111;">${person.toUpperCase()}</div>
+                            <div style="font-weight: 700; font-size: 1.25rem; color: #a855f7;">${formatCurrency(totals[person])}</div>
+                        </div>
+                        
+                        <div style="margin-bottom: 0.75rem;">
+                            <div style="font-weight: 600; color: #4b5563; margin-bottom: 0.5rem;">Order:</div>
+                            ${itemsHtml}
+                        </div>
+
+                        <div style="margin-left: 1rem; color: #4b5563; font-size: 0.9rem;">
+                            <div>Service: ${formatCurrency(services[person])}</div>
+                            <div>Tax: ${formatCurrency(taxes[person])}</div>
+                        </div>
                     </div>
-                    <div class="result-total" style="margin-top: 0.75rem;">Total: ${formatCurrency(totals[person])}</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
+            // Build settlement details
             const settlementHtml = settlement.map(s => `
-                <div class="settlement-item">
-                    <strong>${s.from}</strong> owes <strong>${s.to}</strong>: <span style="color: #10b981; font-weight: 700;">${formatCurrency(s.amount)}</span>
+                <div style="color: #1f2937; margin-bottom: 0.75rem; font-size: 0.95rem;">
+                    <strong>${s.from}</strong> → <strong>${s.to}</strong>: <span style="color: #10b981; font-weight: 700;">${formatCurrency(s.amount)}</span>
                 </div>
             `).join('');
 
-            document.getElementById('resultPeople').innerHTML = peopleHtml;
-            document.getElementById('resultSettlement').innerHTML = settlementHtml + `
-                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(16, 185, 129, 0.3); text-align: center;">
-                    <div style="font-size: 0.875rem; color: #4b5563; margin-bottom: 0.5rem;">Total Bill:</div>
-                    <div style="font-size: 1.25rem; font-weight: 700; color: #10b981;">${formatCurrency(totalSum)}</div>
+            const summaryHtml = state.people.map(person => `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.95rem;">
+                    <span>${person}</span>
+                    <span style="font-weight: 600;">${formatCurrency(totals[person])}</span>
+                </div>
+            `).join('');
+
+            const bearerName = state.bearer.toUpperCase();
+
+            document.getElementById('resultPeople').innerHTML = `
+                <div style="font-family: 'Courier New', monospace; color: #111; line-height: 1.8;">
+                    ${peopleHtml}
                 </div>
             `;
+
+            document.getElementById('resultSettlement').innerHTML = `
+                <div style="margin-bottom: 2rem;">
+                    <div style="font-weight: 600; margin-bottom: 0.75rem; color: #111;">Payment Details:</div>
+                    ${settlementHtml}
+                </div>
+
+                <div style="background: #f3f4f6; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                    <div style="font-weight: 700; margin-bottom: 1rem; color: #111; text-align: center; border-bottom: 2px solid #d1d5db; padding-bottom: 0.5rem;">SUMMARY</div>
+                    ${summaryHtml}
+                    <div style="border-top: 2px solid #d1d5db; margin-top: 0.75rem; padding-top: 0.75rem; margin-bottom: 0;">
+                        <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1.05rem;">
+                            <span>TOTAL</span>
+                            <span style="color: #a855f7;">${formatCurrency(totalSum)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); padding: 1.5rem; border-radius: 0.75rem; text-align: center; border: 2px solid rgba(16, 185, 129, 0.3);">
+                    <div style="font-weight: 600; color: #4b5563; margin-bottom: 0.5rem; font-size: 0.9rem;">SETTLEMENT TO</div>
+                    <div style="font-weight: 700; font-size: 1.5rem; color: #10b981;">${bearerName}</div>
+                </div>
+            `;
+
             document.getElementById('inputView').classList.add('hidden');
             document.getElementById('resultView').classList.remove('hidden');
         }
@@ -1042,29 +1157,50 @@
 
         // Initialize
         window.addEventListener('DOMContentLoaded', () => {
-            if (!state.apiKey) {
+            // Show API key setup only on first load if nothing is stored
+            try {
+                if (!localStorage.getItem('splitbill_setup_done')) {
+                    document.getElementById('setupView').classList.remove('hidden');
+                } else {
+                    // If user already went through setup (either skipped or saved key), go to main view
+                    state.apiKey = localStorage.getItem('splitbill_api_key') || '';
+                    document.getElementById('inputView').classList.remove('hidden');
+                    if (state.apiKey) {
+                        document.getElementById('resetKeyBtn').style.display = 'inline-block';
+                    }
+                    updateUI();
+                }
+            } catch (e) {
+                // localStorage not available (Claude preview), show setup
                 document.getElementById('setupView').classList.remove('hidden');
-                document.getElementById('resetKeyBtn').style.display = 'none';
-            } else {
-                document.getElementById('inputView').classList.remove('hidden');
-                document.getElementById('resetKeyBtn').style.display = 'inline-block';
-                updateUI();
             }
+            
             // Ensure modal is hidden on load
             document.getElementById('editItemModal').classList.add('hidden');
+
+            // Add event listeners
+            const newPersonInput = document.getElementById('newPersonInput');
+            if (newPersonInput) {
+                newPersonInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') addPerson();
+                });
+            }
+
+            const serviceAmount = document.getElementById('serviceAmount');
+            if (serviceAmount) {
+                serviceAmount.addEventListener('change', (e) => {
+                    state.serviceAmount = parseFloat(e.target.value) || 0;
+                });
+            }
+
+            const taxAmount = document.getElementById('taxAmount');
+            if (taxAmount) {
+                taxAmount.addEventListener('change', (e) => {
+                    state.taxAmount = parseFloat(e.target.value) || 0;
+                });
+            }
         });
 
-        document.getElementById('newPersonInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addPerson();
-        });
-
-        document.getElementById('serviceAmount').addEventListener('change', (e) => {
-            state.serviceAmount = parseFloat(e.target.value) || 0;
-        });
-
-        document.getElementById('taxAmount').addEventListener('change', (e) => {
-            state.taxAmount = parseFloat(e.target.value) || 0;
-        });
     </script>
 </body>
 </html>
