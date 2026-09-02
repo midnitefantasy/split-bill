@@ -588,6 +588,20 @@
             };
         }
 
+        // Initialize state object
+        let state = {
+            apiKey: '',
+            currency: 'IDR',
+            currencySymbol: 'Rp',
+            people: [],
+            items: [],
+            serviceAmount: 0,
+            taxAmount: 0,
+            bearer: '',
+            newItemAssigned: [],
+            editingItemIdx: null
+        };
+
         function setApiKey() {
             const key = document.getElementById('apiKeyInput').value.trim();
             if (!key) {
